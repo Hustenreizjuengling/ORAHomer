@@ -25,7 +25,7 @@ create table hom_app_config (
   updated_by      varchar2(128)  default user,
   constraint hom_app_config_visible_ck check (is_visible in ('Y','N')),
   constraint hom_app_config_cat_fk  foreign key (category_id) references hom_categories (category_id),
-  constraint hom_app_config_icon_fk foreign key (icon_id)     references hom_icons (icon_id)
+  constraint hom_app_config_icon_fk foreign key (icon_id)     references hom_icons (icon_id) on delete set null
 );
 
 create index hom_app_config_cat_ix  on hom_app_config (category_id);

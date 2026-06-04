@@ -33,6 +33,10 @@ prompt -- table HOM_APP_CONFIG
 prompt -- table HOM_LINKS
 @@ddl/tables/hom_links.sql
 
+prompt -- trigger HOM_ICONS_AUDIT
+@@ddl/triggers/hom_icons_audit.sql
+show errors
+
 prompt -- package PCK_HOM_LOG
 @@packages/pck_hom_log.sql
 show errors

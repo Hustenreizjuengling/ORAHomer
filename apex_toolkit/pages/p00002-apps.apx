@@ -1,6 +1,6 @@
 page 2 (
     name: Apps verwalten
-    alias: MANAGE-APPS
+    alias: APPS
     title: ORAHomer - Apps verwalten
     pageGroup: @administration
     appearance {

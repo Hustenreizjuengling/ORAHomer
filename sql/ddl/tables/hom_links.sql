@@ -25,7 +25,7 @@ create table hom_links (
   constraint hom_links_newtab_ck  check (open_in_new_tab in ('Y','N')),
   constraint hom_links_visible_ck check (is_visible in ('Y','N')),
   constraint hom_links_cat_fk  foreign key (category_id) references hom_categories (category_id),
-  constraint hom_links_icon_fk foreign key (icon_id)     references hom_icons (icon_id)
+  constraint hom_links_icon_fk foreign key (icon_id)     references hom_icons (icon_id) on delete set null
 );
 
 create index hom_links_cat_ix  on hom_links (category_id);
