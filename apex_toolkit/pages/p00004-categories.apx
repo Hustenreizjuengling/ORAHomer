@@ -1,0 +1,167 @@
+page 4 (
+    name: Kategorien
+    alias: CATEGORIES
+    title: ORAHomer - Kategorien
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    button create (
+        buttonName: CREATE
+        label: Neue Kategorie
+        layout {
+            sequence: 1
+            slot: body
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 5
+                clearCache: 5
+            }
+        }
+    )
+
+    region categories (
+        name: Kategorien
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select category_id,
+                       name,
+                       icon_css,
+                       display_seq,
+                       case is_active when 'Y' then 'Aktiv' else 'Inaktiv' end as active_label,
+                       case is_active when 'Y' then 'u-success' else 'u-warning' end as active_css,
+                       updated_at
+                  from hom_categories
+                 order by display_seq, name
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: body
+            columnSpan: 12
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        link {
+            linkColumn: customTarget
+            target: {
+                page: 5
+                items: {
+                    P5_CATEGORY_ID: #CATEGORY_ID#
+                }
+                clearCache: 5
+            }
+        }
+
+        column CATEGORY_ID (
+            type: plainText
+            heading {
+                heading: ID
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column ICON_CSS (
+            type: plainText
+            heading {
+                heading: Icon-Klasse
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column DISPLAY_SEQ (
+            type: plainText
+            heading {
+                heading: Reihenfolge
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column ACTIVE_LABEL (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+            columnFormatting {
+                htmlExpression: <span class="t-Badge &ACTIVE_CSS.">&ACTIVE_LABEL.</span>
+            }
+        )
+        column ACTIVE_CSS (
+            type: hidden
+            heading {
+                heading: Active CSS
+            }
+            layout {
+                sequence: 55
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column UPDATED_AT (
+            type: plainText
+            heading {
+                heading: Geändert
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+
+)

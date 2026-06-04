@@ -1,0 +1,352 @@
+page 3 (
+    name: App-Konfiguration
+    alias: APP-CONFIG
+    title: ORAHomer - App-Konfiguration
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region cfg (
+        name: Konfiguration
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P3_APPLICATION_ID (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @cfg
+            slot: regionBody
+        }
+    )
+
+    pageItem P3_APP_NAME (
+        type: displayOnly
+        label {
+            label: App
+        }
+        layout {
+            sequence: 10
+            region: @cfg
+            slot: regionBody
+        }
+    )
+
+    pageItem P3_DISPLAY_NAME (
+        type: textField
+        label {
+            label: Anzeigename (optional)
+        }
+        layout {
+            sequence: 20
+            region: @cfg
+            slot: regionBody
+        }
+        appearance {
+            template: @/optional-floating
+        }
+        help {
+            helpText: Ersetzt den echten App-Namen auf der Kachel. Leer = echten Namen verwenden.
+        }
+    )
+
+    pageItem P3_CATEGORY_ID (
+        type: selectList
+        label {
+            label: Kategorie
+        }
+        layout {
+            sequence: 30
+            region: @cfg
+            slot: regionBody
+        }
+        appearance {
+            template: @/optional-floating
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select name as d, category_id as r
+                  from hom_categories
+                 where is_active = 'Y'
+                 order by display_seq, name
+                ```
+            displayNullValue: true
+        }
+    )
+
+    pageItem P3_ICON_ID (
+        type: selectList
+        label {
+            label: Icon
+        }
+        layout {
+            sequence: 40
+            region: @cfg
+            slot: regionBody
+        }
+        appearance {
+            template: @/optional-floating
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select name as d, icon_id as r
+                  from hom_icons
+                 order by name
+                ```
+            displayNullValue: true
+        }
+        help {
+            helpText: Ein hochgeladenes Icon ersetzt das automatisch erkannte App-Icon. Ohne Auswahl wird das App-Icon (oder ein generierter Badge) verwendet.
+        }
+    )
+
+    pageItem P3_IS_VISIBLE (
+        type: selectList
+        label {
+            label: Sichtbar
+        }
+        layout {
+            sequence: 50
+            region: @cfg
+            slot: regionBody
+        }
+        appearance {
+            template: @/required-floating
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select 'Sichtbar' as d, 'Y' as r from dual
+                union all
+                select 'Versteckt' as d, 'N' as r from dual
+                ```
+            displayNullValue: false
+        }
+    )
+
+    pageItem P3_DISPLAY_SEQ (
+        type: numberField
+        label {
+            label: Reihenfolge
+        }
+        layout {
+            sequence: 60
+            region: @cfg
+            slot: regionBody
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-floating
+        }
+        help {
+            helpText: Sortierung innerhalb der Kategorie (aufsteigend).
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Abbrechen
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 2
+            }
+        }
+    )
+
+    button reset (
+        buttonName: RESET
+        label: Auf Standard zurücksetzen
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Speichern
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    process load-config (
+        name: Load app config
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                declare
+                  l_name varchar2(255);
+                begin
+                  begin
+                    select application_name into l_name
+                      from apex_applications
+                     where application_id = :P3_APPLICATION_ID;
+                  exception when no_data_found then
+                    l_name := '(unbekannt)';
+                  end;
+                  :P3_APP_NAME := l_name || ' (#' || :P3_APPLICATION_ID || ')';
+
+                  begin
+                    select display_name, category_id, icon_id, is_visible, display_seq
+                      into :P3_DISPLAY_NAME, :P3_CATEGORY_ID, :P3_ICON_ID, :P3_IS_VISIBLE, :P3_DISPLAY_SEQ
+                      from hom_app_config
+                     where application_id = :P3_APPLICATION_ID;
+                  exception when no_data_found then
+                    :P3_IS_VISIBLE  := 'Y';
+                    :P3_DISPLAY_SEQ := 10;
+                  end;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    dynamicAction da-save (
+        name: Save app config
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @save
+        }
+
+        action do-save (
+            action: executeServerSideCode
+            settings {
+                itemsToSubmit: P3_APPLICATION_ID,P3_DISPLAY_NAME,P3_CATEGORY_ID,P3_ICON_ID,P3_IS_VISIBLE,P3_DISPLAY_SEQ
+                plsqlCode:
+                    ```plsql
+                    begin
+                      pck_hom_app_config_dml.save(
+                        p_application_id => to_number(:P3_APPLICATION_ID),
+                        p_category_id    => to_number(:P3_CATEGORY_ID),
+                        p_display_name   => :P3_DISPLAY_NAME,
+                        p_icon_id        => to_number(:P3_ICON_ID),
+                        p_is_visible     => :P3_IS_VISIBLE,
+                        p_display_seq    => to_number(:P3_DISPLAY_SEQ));
+                      commit;
+                    end;
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action go-back (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    apex.navigation.redirect('f?p=&APP_ID.:2:&APP_SESSION.');
+                    ```
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction da-reset (
+        name: Reset app config
+        execution {
+            sequence: 20
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @reset
+        }
+
+        action do-reset (
+            action: executeServerSideCode
+            settings {
+                itemsToSubmit: P3_APPLICATION_ID
+                plsqlCode:
+                    ```plsql
+                    begin
+                      pck_hom_app_config_dml.reset(to_number(:P3_APPLICATION_ID));
+                      commit;
+                    end;
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action go-back-reset (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    apex.navigation.redirect('f?p=&APP_ID.:2:&APP_SESSION.');
+                    ```
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

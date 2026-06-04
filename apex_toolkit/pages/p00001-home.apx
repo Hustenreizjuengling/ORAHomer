@@ -1,0 +1,204 @@
+page 1 (
+    name: Startseite
+    alias: HOME
+    title: ORAHomer
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region filter (
+        name: Filter
+        type: staticContent
+        layout {
+            sequence: 5
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P1_CATEGORY (
+        type: selectList
+        label {
+            label: Kategorie
+        }
+        layout {
+            sequence: 10
+            region: @filter
+            slot: regionBody
+        }
+        appearance {
+            template: @/optional-floating
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select category_label as d, category_label as r
+                  from hom_tiles_v
+                 group by category_label, category_seq
+                 order by category_seq, category_label
+                ```
+            displayNullValue: true
+        }
+    )
+
+    pageItem P1_SEARCH (
+        type: textField
+        label {
+            label: Suche
+        }
+        layout {
+            sequence: 20
+            region: @filter
+            slot: regionBody
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-floating
+            icon: fa-search
+            valuePlaceholder: Name der App oder des Links
+        }
+    )
+
+    button apply (
+        buttonName: APPLY
+        label: Anzeigen
+        layout {
+            sequence: 30
+            region: @filter
+            slot: regionBody
+            startNewRow: false
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    region tiles (
+        name: Anwendungen
+        type: cards
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select tile_id,
+                       title,
+                       subtitle,
+                       url,
+                       category_label,
+                       icon_blob,
+                       icon_mime,
+                       case when new_tab = 'Y' then 'target="_blank" rel="noopener"' end as new_tab_attr
+                  from hom_tiles_v
+                 where (:P1_CATEGORY is null or category_label = :P1_CATEGORY)
+                   and (:P1_SEARCH is null
+                        or upper(title) like '%' || upper(:P1_SEARCH) || '%'
+                        or upper(subtitle) like '%' || upper(:P1_SEARCH) || '%')
+                 order by category_seq, category_label, display_seq, title
+                ```
+            pageItemsToSubmit: P1_CATEGORY,P1_SEARCH
+        }
+        layout {
+            sequence: 10
+            slot: body
+            columnSpan: 12
+        }
+        appearance {
+            template: @/cards-container
+            templateOptions: #DEFAULT#
+        }
+        card {
+            primaryKeyColumn1: TILE_ID
+        }
+        media {
+            source: blobColumn
+            blobColumn: ICON_BLOB
+            position: first
+            appearance: square
+        }
+        blobAttributes {
+            mimeTypeColumn: ICON_MIME
+        }
+        title {
+            htmlExpression: <a href="&URL." &NEW_TAB_ATTR!RAW.>&TITLE.</a>
+            advancedFormatting: true
+        }
+        subtitle {
+            column: CATEGORY_LABEL
+        }
+        body {
+            column: SUBTITLE
+        }
+        componentAppearance {
+            gridColumns: 3
+        }
+    )
+
+    dynamicAction da-apply (
+        name: Apply filter
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @apply
+        }
+
+        action refresh-tiles (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @tiles
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction da-category (
+        name: Category changed
+        execution {
+            sequence: 20
+        }
+        when {
+            event: change
+            selectionType: item
+            item: P1_CATEGORY
+        }
+
+        action refresh-on-category (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @tiles
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

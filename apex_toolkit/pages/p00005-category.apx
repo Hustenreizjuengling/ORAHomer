@@ -1,0 +1,308 @@
+page 5 (
+    name: Kategorie
+    alias: CATEGORY
+    title: ORAHomer - Kategorie
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region cat (
+        name: Kategorie
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P5_CATEGORY_ID (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @cat
+            slot: regionBody
+        }
+    )
+
+    pageItem P5_NAME (
+        type: textField
+        label {
+            label: Name
+        }
+        layout {
+            sequence: 10
+            region: @cat
+            slot: regionBody
+        }
+        appearance {
+            template: @/required-floating
+        }
+        validation {
+            valueRequired: true
+            maxLength: 100
+        }
+    )
+
+    pageItem P5_ICON_CSS (
+        type: textField
+        label {
+            label: Icon-Klasse (optional)
+        }
+        layout {
+            sequence: 20
+            region: @cat
+            slot: regionBody
+        }
+        appearance {
+            template: @/optional-floating
+            valuePlaceholder: fa-folder
+        }
+        help {
+            helpText: Font-APEX-Klasse für das Kategorie-Badge, z. B. fa-folder oder fa-briefcase.
+        }
+    )
+
+    pageItem P5_DISPLAY_SEQ (
+        type: numberField
+        label {
+            label: Reihenfolge
+        }
+        layout {
+            sequence: 30
+            region: @cat
+            slot: regionBody
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-floating
+        }
+    )
+
+    pageItem P5_IS_ACTIVE (
+        type: selectList
+        label {
+            label: Aktiv
+        }
+        layout {
+            sequence: 40
+            region: @cat
+            slot: regionBody
+        }
+        appearance {
+            template: @/required-floating
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select 'Aktiv' as d, 'Y' as r from dual
+                union all
+                select 'Inaktiv' as d, 'N' as r from dual
+                ```
+            displayNullValue: false
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Abbrechen
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 4
+            }
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Löschen
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P5_CATEGORY_ID
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Speichern
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    process load-category (
+        name: Load category
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                begin
+                  if :P5_CATEGORY_ID is not null then
+                    select name, icon_css, display_seq, is_active
+                      into :P5_NAME, :P5_ICON_CSS, :P5_DISPLAY_SEQ, :P5_IS_ACTIVE
+                      from hom_categories
+                     where category_id = :P5_CATEGORY_ID;
+                  else
+                    :P5_IS_ACTIVE   := 'Y';
+                    :P5_DISPLAY_SEQ := 10;
+                  end if;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    dynamicAction da-save (
+        name: Save category
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @save
+        }
+
+        action do-save (
+            action: executeServerSideCode
+            settings {
+                itemsToSubmit: P5_CATEGORY_ID,P5_NAME,P5_ICON_CSS,P5_DISPLAY_SEQ,P5_IS_ACTIVE
+                plsqlCode:
+                    ```plsql
+                    declare
+                      l_id number;
+                    begin
+                      l_id := pck_hom_categories_dml.save(
+                                p_category_id => to_number(:P5_CATEGORY_ID),
+                                p_name        => :P5_NAME,
+                                p_icon_css    => :P5_ICON_CSS,
+                                p_display_seq => to_number(:P5_DISPLAY_SEQ),
+                                p_is_active   => :P5_IS_ACTIVE);
+                      commit;
+                    end;
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action go-back (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    apex.navigation.redirect('f?p=&APP_ID.:4:&APP_SESSION.');
+                    ```
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction da-delete (
+        name: Delete category
+        execution {
+            sequence: 20
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @delete
+        }
+
+        action confirm-delete (
+            action: confirm
+            settings {
+                message: Diese Kategorie wirklich löschen? Zugeordnete Apps/Links werden auf "keine Kategorie" gesetzt.
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action do-delete (
+            action: executeServerSideCode
+            settings {
+                itemsToSubmit: P5_CATEGORY_ID
+                plsqlCode:
+                    ```plsql
+                    begin
+                      pck_hom_categories_dml.del(to_number(:P5_CATEGORY_ID));
+                      commit;
+                    end;
+                    ```
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+        action go-back-delete (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    apex.navigation.redirect('f?p=&APP_ID.:4:&APP_SESSION.');
+                    ```
+            }
+            execution {
+                sequence: 30
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

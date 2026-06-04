@@ -1,0 +1,275 @@
+page 9 (
+    name: Icon
+    alias: ICON
+    title: ORAHomer - Icon
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region ic (
+        name: Icon
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P9_ICON_ID (
+        type: hidden
+        layout {
+            sequence: 5
+            region: @ic
+            slot: regionBody
+        }
+    )
+
+    pageItem P9_NAME (
+        type: textField
+        label {
+            label: Name
+        }
+        layout {
+            sequence: 10
+            region: @ic
+            slot: regionBody
+        }
+        appearance {
+            template: @/required-floating
+        }
+        validation {
+            valueRequired: true
+            maxLength: 100
+        }
+        help {
+            helpText: Eindeutiger Name, unter dem das Icon in den Auswahllisten erscheint.
+        }
+    )
+
+    pageItem P9_FILE (
+        type: imageUpload
+        label {
+            label: Bilddatei
+        }
+        layout {
+            sequence: 20
+            region: @ic
+            slot: regionBody
+        }
+        appearance {
+            template: @/optional-floating
+        }
+        help {
+            helpText: PNG, SVG oder JPG. Beim Bearbeiten leer lassen, um das vorhandene Bild zu behalten.
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Abbrechen
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 8
+            }
+        }
+    )
+
+    button delete (
+        buttonName: DELETE
+        label: Löschen
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P9_ICON_ID
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Speichern
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    process load-icon (
+        name: Load icon
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                begin
+                  if :P9_ICON_ID is not null then
+                    select name into :P9_NAME
+                      from hom_icons
+                     where icon_id = :P9_ICON_ID;
+                  end if;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    dynamicAction da-save (
+        name: Save icon
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @save
+        }
+
+        action do-save (
+            action: executeServerSideCode
+            settings {
+                itemsToSubmit: P9_ICON_ID,P9_NAME,P9_FILE
+                plsqlCode:
+                    ```plsql
+                    declare
+                      l_blob  blob;
+                      l_mime  varchar2(255);
+                      l_fname varchar2(255);
+                      l_id    number;
+                    begin
+                      if :P9_FILE is not null then
+                        select blob_content, mime_type, filename
+                          into l_blob, l_mime, l_fname
+                          from apex_application_temp_files
+                         where name = :P9_FILE;
+                      end if;
+
+                      l_id := pck_hom_icons_dml.save(
+                                p_icon_id   => to_number(:P9_ICON_ID),
+                                p_name      => :P9_NAME,
+                                p_blob      => l_blob,
+                                p_mime      => l_mime,
+                                p_file_name => l_fname);
+                      commit;
+                    end;
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action go-back (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    apex.navigation.redirect('f?p=&APP_ID.:8:&APP_SESSION.');
+                    ```
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction da-delete (
+        name: Delete icon
+        execution {
+            sequence: 20
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @delete
+        }
+
+        action confirm-delete (
+            action: confirm
+            settings {
+                message: Dieses Icon wirklich löschen? Apps/Links, die es nutzen, fallen auf ihr automatisches Icon zurück.
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action do-delete (
+            action: executeServerSideCode
+            settings {
+                itemsToSubmit: P9_ICON_ID
+                plsqlCode:
+                    ```plsql
+                    begin
+                      pck_hom_icons_dml.del(to_number(:P9_ICON_ID));
+                      commit;
+                    end;
+                    ```
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+        action go-back-delete (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript
+                    apex.navigation.redirect('f?p=&APP_ID.:8:&APP_SESSION.');
+                    ```
+            }
+            execution {
+                sequence: 30
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

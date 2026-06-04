@@ -1,0 +1,340 @@
+page 10 (
+    name: Einstellungen
+    alias: SETTINGS
+    title: ORAHomer - Einstellungen
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region general (
+        name: Darstellung & Verhalten
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P10_HOME_TITLE (
+        type: textField
+        label {
+            label: Überschrift der Startseite
+        }
+        layout {
+            sequence: 10
+            region: @general
+            slot: regionBody
+        }
+        appearance {
+            template: @/optional-floating
+        }
+    )
+
+    pageItem P10_HOME_SUBTITLE (
+        type: textField
+        label {
+            label: Unterüberschrift
+        }
+        layout {
+            sequence: 20
+            region: @general
+            slot: regionBody
+        }
+        appearance {
+            template: @/optional-floating
+        }
+    )
+
+    pageItem P10_DEFAULT_VISIBLE (
+        type: selectList
+        label {
+            label: Neue Apps standardmäßig sichtbar
+        }
+        layout {
+            sequence: 30
+            region: @general
+            slot: regionBody
+        }
+        appearance {
+            template: @/required-floating
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select 'Ja (Opt-out)'  as d, 'Y' as r from dual
+                union all
+                select 'Nein (Opt-in)' as d, 'N' as r from dual
+                ```
+            displayNullValue: false
+        }
+        help {
+            helpText: Ja = jede Workspace-App erscheint automatisch, bis sie ausgeblendet wird. Nein = Apps erscheinen erst nach Freischaltung.
+        }
+    )
+
+    pageItem P10_SHOW_UNCAT (
+        type: selectList
+        label {
+            label: Unkategorisierte anzeigen
+        }
+        layout {
+            sequence: 40
+            region: @general
+            slot: regionBody
+            startNewRow: false
+        }
+        appearance {
+            template: @/required-floating
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select 'Ja'   as d, 'Y' as r from dual
+                union all
+                select 'Nein' as d, 'N' as r from dual
+                ```
+            displayNullValue: false
+        }
+        help {
+            helpText: Zeigt Kacheln ohne Kategorie in einer abschließenden Gruppe "Sonstige".
+        }
+    )
+
+    button save (
+        buttonName: SAVE
+        label: Speichern
+        layout {
+            sequence: 50
+            region: @general
+            slot: regionBody
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    region cfg-list (
+        name: Alle Einstellungen
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select config_key,
+                       category,
+                       data_type,
+                       value_string,
+                       value_number,
+                       value_timestamp,
+                       description,
+                       updated_at
+                  from hom_config
+                 order by category, config_key
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+
+        column CONFIG_KEY (
+            type: plainText
+            heading {
+                heading: Schlüssel
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column CATEGORY (
+            type: plainText
+            heading {
+                heading: Kategorie
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column DATA_TYPE (
+            type: plainText
+            heading {
+                heading: Typ
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column VALUE_STRING (
+            type: plainText
+            heading {
+                heading: Wert
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column VALUE_NUMBER (
+            type: plainText
+            heading {
+                heading: Zahl
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column VALUE_TIMESTAMP (
+            type: plainText
+            heading {
+                heading: Zeitstempel
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column DESCRIPTION (
+            type: plainText
+            heading {
+                heading: Beschreibung
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column UPDATED_AT (
+            type: plainText
+            heading {
+                heading: Geändert
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+
+    process load-settings (
+        name: Load settings
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                begin
+                  :P10_HOME_TITLE      := pck_hom_config_dml.get_string('HOME_TITLE', 'Anwendungen');
+                  :P10_HOME_SUBTITLE   := pck_hom_config_dml.get_string('HOME_SUBTITLE');
+                  :P10_DEFAULT_VISIBLE := nvl(pck_hom_config_dml.get_string('DEFAULT_APP_VISIBLE'), 'Y');
+                  :P10_SHOW_UNCAT      := nvl(pck_hom_config_dml.get_string('SHOW_UNCATEGORISED'), 'Y');
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+    )
+
+    dynamicAction da-save (
+        name: Save settings
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @save
+        }
+
+        action do-save (
+            action: executeServerSideCode
+            settings {
+                itemsToSubmit: P10_HOME_TITLE,P10_HOME_SUBTITLE,P10_DEFAULT_VISIBLE,P10_SHOW_UNCAT
+                plsqlCode:
+                    ```plsql
+                    begin
+                      pck_hom_config_dml.set_string ('HOME_TITLE',          :P10_HOME_TITLE);
+                      pck_hom_config_dml.set_string ('HOME_SUBTITLE',       :P10_HOME_SUBTITLE);
+                      pck_hom_config_dml.set_boolean('DEFAULT_APP_VISIBLE', :P10_DEFAULT_VISIBLE = 'Y');
+                      pck_hom_config_dml.set_boolean('SHOW_UNCATEGORISED',  :P10_SHOW_UNCAT = 'Y');
+                      commit;
+                    end;
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action refresh-cfg (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @cfg-list
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+        action msg-saved (
+            action: showSuccessMessage
+            settings {
+                message: Einstellungen gespeichert.
+            }
+            execution {
+                sequence: 30
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)

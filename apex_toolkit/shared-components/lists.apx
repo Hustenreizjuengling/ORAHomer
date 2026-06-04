@@ -1,0 +1,175 @@
+list navigation-bar (
+    name: Navigation Bar
+
+    entry app-user (
+        label: &APP_USER.
+        icon {
+            imageIconCssClasses: fa-user
+        }
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                type: url
+                url: #
+            }
+        }
+        userDefinedAttributes {
+            2: has-username
+        }
+    )
+
+    entry list_item (
+        label: ---
+        layout {
+            sequence: 20
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: separator
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+    entry sign-out (
+        label: Sign Out
+        icon {
+            imageIconCssClasses: fa-sign-out
+        }
+        layout {
+            sequence: 30
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: &LOGOUT_URL.
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+)
+
+list navigation-menu (
+    name: Navigation Menu
+
+    entry home (
+        label: Startseite
+        icon {
+            imageIconCssClasses: fa-home
+        }
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 1
+            }
+        }
+    )
+
+    entry apps (
+        label: Apps verwalten
+        icon {
+            imageIconCssClasses: fa-window-restore
+        }
+        layout {
+            sequence: 20
+        }
+        isCurrent {
+            type: pages
+            pages: 2,3
+        }
+        link {
+            target: {
+                page: 2
+            }
+        }
+    )
+
+    entry categories (
+        label: Kategorien
+        icon {
+            imageIconCssClasses: fa-tags
+        }
+        layout {
+            sequence: 30
+        }
+        isCurrent {
+            type: pages
+            pages: 4,5
+        }
+        link {
+            target: {
+                page: 4
+            }
+        }
+    )
+
+    entry links (
+        label: Externe Links
+        icon {
+            imageIconCssClasses: fa-external-link
+        }
+        layout {
+            sequence: 40
+        }
+        isCurrent {
+            type: pages
+            pages: 6,7
+        }
+        link {
+            target: {
+                page: 6
+            }
+        }
+    )
+
+    entry icons (
+        label: Icon-Bibliothek
+        icon {
+            imageIconCssClasses: fa-picture-o
+        }
+        layout {
+            sequence: 50
+        }
+        isCurrent {
+            type: pages
+            pages: 8,9
+        }
+        link {
+            target: {
+                page: 8
+            }
+        }
+    )
+
+    entry settings (
+        label: Einstellungen
+        icon {
+            imageIconCssClasses: fa-cog
+        }
+        layout {
+            sequence: 60
+        }
+        isCurrent {
+            type: pages
+            pages: 10
+        }
+        link {
+            target: {
+                page: 10
+            }
+        }
+    )
+
+)

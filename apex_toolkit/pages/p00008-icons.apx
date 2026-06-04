@@ -1,0 +1,97 @@
+page 8 (
+    name: Icon-Bibliothek
+    alias: ICONS
+    title: ORAHomer - Icon-Bibliothek
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    button create (
+        buttonName: CREATE
+        label: Icon hochladen
+        layout {
+            sequence: 1
+            slot: body
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 9
+                clearCache: 9
+            }
+        }
+    )
+
+    region icons (
+        name: Icons
+        type: cards
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select icon_id,
+                       name,
+                       file_name,
+                       mime_type,
+                       icon_blob,
+                       apex_page.get_url(
+                         p_page        => 9,
+                         p_items       => 'P9_ICON_ID',
+                         p_values      => to_char(icon_id),
+                         p_clear_cache => '9') as edit_url
+                  from hom_icons
+                 order by name
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: body
+            columnSpan: 12
+        }
+        appearance {
+            template: @/cards-container
+            templateOptions: #DEFAULT#
+        }
+        card {
+            primaryKeyColumn1: ICON_ID
+        }
+        media {
+            source: blobColumn
+            blobColumn: ICON_BLOB
+            position: first
+            appearance: square
+        }
+        blobAttributes {
+            mimeTypeColumn: MIME_TYPE
+        }
+        title {
+            htmlExpression: <a href="&EDIT_URL.">&NAME.</a>
+            advancedFormatting: true
+        }
+        subtitle {
+            column: MIME_TYPE
+        }
+        body {
+            column: FILE_NAME
+        }
+        componentAppearance {
+            gridColumns: 4
+        }
+    )
+
+)

@@ -1,0 +1,185 @@
+page 2 (
+    name: Apps verwalten
+    alias: MANAGE-APPS
+    title: ORAHomer - Apps verwalten
+    pageGroup: @administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region apps (
+        name: Workspace-Apps
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select application_id,
+                       effective_name,
+                       application_name,
+                       alias,
+                       category_name,
+                       icon_name,
+                       display_seq,
+                       is_customised,
+                       is_visible,
+                       case is_visible when 'Y' then 'Sichtbar' else 'Versteckt' end as visible_label,
+                       case is_visible when 'Y' then 'u-success' else 'u-warning' end as visible_css
+                  from hom_app_config_v
+                 order by category_name nulls last, display_seq, effective_name
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: body
+            columnSpan: 12
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        link {
+            linkColumn: customTarget
+            target: {
+                page: 3
+                items: {
+                    P3_APPLICATION_ID: #APPLICATION_ID#
+                }
+            }
+        }
+
+        column APPLICATION_ID (
+            type: plainText
+            heading {
+                heading: App-ID
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column EFFECTIVE_NAME (
+            type: plainText
+            heading {
+                heading: Anzeigename
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column APPLICATION_NAME (
+            type: plainText
+            heading {
+                heading: App-Name
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column CATEGORY_NAME (
+            type: plainText
+            heading {
+                heading: Kategorie
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column ICON_NAME (
+            type: plainText
+            heading {
+                heading: Icon
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column VISIBLE_LABEL (
+            type: plainText
+            heading {
+                heading: Sichtbarkeit
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+            columnFormatting {
+                htmlExpression: <span class="t-Badge &VISIBLE_CSS.">&VISIBLE_LABEL.</span>
+            }
+        )
+        column VISIBLE_CSS (
+            type: hidden
+            heading {
+                heading: Visible CSS
+            }
+            layout {
+                sequence: 65
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column IS_VISIBLE (
+            type: hidden
+            heading {
+                heading: Visible
+            }
+            layout {
+                sequence: 66
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column DISPLAY_SEQ (
+            type: plainText
+            heading {
+                heading: Reihenfolge
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column IS_CUSTOMISED (
+            type: plainText
+            heading {
+                heading: Angepasst
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+
+)
