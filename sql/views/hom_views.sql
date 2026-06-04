@@ -22,7 +22,7 @@ with tiles as (
          a.application_id                            as ref_id,
          'APP:' || a.application_id                  as tile_id,
          nvl(c.display_name, a.application_name)     as title,
-         cast(null as varchar2(400))                 as subtitle,
+         c.description                               as subtitle,
          pck_hom_api.app_url(a.application_id)       as url,
          'N'                                         as new_tab,
          c.category_id                               as category_id,

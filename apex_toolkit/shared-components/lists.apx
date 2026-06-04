@@ -87,7 +87,7 @@ list navigation-menu (
         }
         isCurrent {
             type: pages
-            pages: 2,3
+            pages: 2
         }
         link {
             target: {
@@ -106,7 +106,7 @@ list navigation-menu (
         }
         isCurrent {
             type: pages
-            pages: 4,5
+            pages: 4
         }
         link {
             target: {
@@ -125,7 +125,7 @@ list navigation-menu (
         }
         isCurrent {
             type: pages
-            pages: 6,7
+            pages: 6
         }
         link {
             target: {
@@ -144,7 +144,7 @@ list navigation-menu (
         }
         isCurrent {
             type: pages
-            pages: 8,9
+            pages: 8
         }
         link {
             target: {

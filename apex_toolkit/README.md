@@ -19,11 +19,13 @@ apex_toolkit/
 
 ## Seiten
 
-- **1 Startseite** — `Cards`-Region über `HOM_TILES_V`. Das Kachelbild kommt als BLOB-Spalte
-  (`media.source = blobColumn`, `ICON_BLOB` + `ICON_MIME`); der Titel ist ein in
-  `title.htmlExpression` gebauter Link (`<a href="&URL." …>`), Untertitel = Kategorie,
-  Body = Beschreibung. Filter: `P1_CATEGORY` (Select aus den vorhandenen Kategorien) und
-  `P1_SEARCH`; beide aktualisieren die Region per Dynamic Action (Region-Refresh).
+- **1 Startseite** — eine `dynamicContent`-Region; `plsqlFunctionBody` gibt
+  `pck_hom_api.render_home` zurück: serverseitig gebautes HTML, **nach Kategorien gruppiert**
+  (Überschrift je Kategorie, darunter die Kacheln). Jede Kachel ist ein klickbarer
+  `<a class="hom-card">` (Icon links, Name + Beschreibung rechts); das Icon ist als
+  **Data-URI** eingebettet. Styling über eigene `hom-*`-Klassen + UT-CSS-Variablen mit
+  Fallbacks (kein UT-Interna-Override). Reihenfolge ist datengetrieben
+  (`HOM_CATEGORIES.display_seq` und Kachel-`display_seq`) — kein On-Page-Filter.
 - **2 Apps verwalten** — IR über `HOM_APP_CONFIG_V`; Link-Spalte setzt `P3_APPLICATION_ID`
   und öffnet Seite 3.
 - **3 App-Konfiguration** — Items für Kategorie/Icon/Sichtbarkeit/Anzeigename/Reihenfolge.

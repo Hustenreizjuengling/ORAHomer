@@ -14,6 +14,7 @@ create table hom_app_config (
                     constraint hom_app_config_pk primary key,  -- = APEX_APPLICATIONS.application_id
   category_id     number,
   display_name    varchar2(255),                       -- override for APEX_APPLICATIONS.application_name
+  description     varchar2(400),                       -- optional tile subtitle shown under the name
   icon_id         number,                              -- uploaded icon (HOM_ICONS) replacing the app icon
   is_visible      varchar2(1)    default 'Y' not null, -- 'N' hides the app from the homepage
   display_seq     number         default 10 not null,  -- ordering within its category
@@ -34,6 +35,7 @@ comment on table  hom_app_config                is 'ORAHomer per-application hom
 comment on column hom_app_config.application_id is 'APEX_APPLICATIONS.application_id this row customises.';
 comment on column hom_app_config.category_id    is 'Optional category the app is grouped under.';
 comment on column hom_app_config.display_name   is 'Optional label overriding the real application name.';
+comment on column hom_app_config.description    is 'Optional tile subtitle shown under the app name on the homepage.';
 comment on column hom_app_config.icon_id        is 'Optional uploaded icon (HOM_ICONS) replacing the detected app icon.';
 comment on column hom_app_config.is_visible     is 'Y = shown on the homepage; N = hidden.';
 comment on column hom_app_config.display_seq    is 'Sort order within the category (ascending).';

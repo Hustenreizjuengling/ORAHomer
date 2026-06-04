@@ -67,6 +67,27 @@ page 3 (
         }
     )
 
+    pageItem P3_DESCRIPTION (
+        type: textField
+        label {
+            label: Beschreibung (optional)
+        }
+        layout {
+            sequence: 25
+            region: @cfg
+            slot: regionBody
+        }
+        appearance {
+            template: @/optional-floating
+        }
+        validation {
+            maxLength: 400
+        }
+        help {
+            helpText: Wird als Untertitel unter dem App-Namen auf der Kachel angezeigt.
+        }
+    )
+
     pageItem P3_CATEGORY_ID (
         type: selectList
         label {
@@ -236,8 +257,8 @@ page 3 (
                   :P3_APP_NAME := l_name || ' (#' || :P3_APPLICATION_ID || ')';
 
                   begin
-                    select display_name, category_id, icon_id, is_visible, display_seq
-                      into :P3_DISPLAY_NAME, :P3_CATEGORY_ID, :P3_ICON_ID, :P3_IS_VISIBLE, :P3_DISPLAY_SEQ
+                    select display_name, description, category_id, icon_id, is_visible, display_seq
+                      into :P3_DISPLAY_NAME, :P3_DESCRIPTION, :P3_CATEGORY_ID, :P3_ICON_ID, :P3_IS_VISIBLE, :P3_DISPLAY_SEQ
                       from hom_app_config
                      where application_id = :P3_APPLICATION_ID;
                   exception when no_data_found then
@@ -267,7 +288,7 @@ page 3 (
         action do-save (
             action: executeServerSideCode
             settings {
-                itemsToSubmit: P3_APPLICATION_ID,P3_DISPLAY_NAME,P3_CATEGORY_ID,P3_ICON_ID,P3_IS_VISIBLE,P3_DISPLAY_SEQ
+                itemsToSubmit: P3_APPLICATION_ID,P3_DISPLAY_NAME,P3_DESCRIPTION,P3_CATEGORY_ID,P3_ICON_ID,P3_IS_VISIBLE,P3_DISPLAY_SEQ
                 plsqlCode:
                     ```plsql
                     begin
@@ -275,6 +296,7 @@ page 3 (
                         p_application_id => to_number(:P3_APPLICATION_ID),
                         p_category_id    => to_number(:P3_CATEGORY_ID),
                         p_display_name   => :P3_DISPLAY_NAME,
+                        p_description    => :P3_DESCRIPTION,
                         p_icon_id        => to_number(:P3_ICON_ID),
                         p_is_visible     => :P3_IS_VISIBLE,
                         p_display_seq    => to_number(:P3_DISPLAY_SEQ));

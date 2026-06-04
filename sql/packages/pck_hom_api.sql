@@ -32,6 +32,13 @@ as
 
   -- Relative URL that opens an app at its home page.
   function app_url(p_application_id in number) return varchar2;
+
+  -- Full homepage markup (HOM_TILES_V grouped by category): a heading per
+  -- category followed by its tiles, ordered by category then tile sequence.
+  -- Each tile is one clickable card (icon left, name + description right). Icons
+  -- are inlined as data-URIs so no extra BLOB-streaming endpoint is needed.
+  -- Returned by the page-1 "dynamicContent" region (plsqlFunctionBody).
+  function render_home return clob;
 end pck_hom_api;
 /
 
@@ -159,6 +166,117 @@ as
   begin
     return 'f?p=' || p_application_id;
   end app_url;
+
+
+  --- append a VARCHAR2 fragment to a CLOB buffer -------------------------------
+  procedure app(p_buf in out nocopy clob, p_txt in varchar2) is
+  begin
+    if p_txt is not null then
+      dbms_lob.writeappend(p_buf, length(p_txt), p_txt);
+    end if;
+  end app;
+
+
+  --- continuous (newline-free) base64 of a BLOB, for data: URIs ----------------
+  function blob_to_b64(p_blob in blob) return clob is
+    l_out   clob;
+    l_chunk constant pls_integer := 2400;   -- multiple of 3 => clean base64 chunks
+    l_pos   integer := 1;
+    l_len   integer := dbms_lob.getlength(p_blob);
+    l_raw   raw(2400);
+    l_b64   varchar2(4000);
+  begin
+    dbms_lob.createtemporary(l_out, true);
+    while l_pos <= l_len loop
+      l_raw := dbms_lob.substr(p_blob, l_chunk, l_pos);
+      l_b64 := utl_raw.cast_to_varchar2(utl_encode.base64_encode(l_raw));
+      l_b64 := replace(replace(l_b64, chr(13)), chr(10));
+      dbms_lob.writeappend(l_out, length(l_b64), l_b64);
+      l_pos := l_pos + l_chunk;
+    end loop;
+    return l_out;
+  end blob_to_b64;
+
+
+  function render_home return clob is
+    l_html clob;
+    l_cat  varchar2(255) := chr(0);   -- sentinel: no category emitted yet
+    l_any  boolean := false;
+  begin
+    dbms_lob.createtemporary(l_html, true);
+
+    -- Scoped, UT-friendly styling: own classes (no UT internals overridden),
+    -- theme colours via UT CSS variables with safe fallbacks.
+    app(l_html,
+      '<style>'
+      || '.hom-wrap{padding:4px 0 16px;}'
+      || '.hom-cat{font-size:14px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;'
+      || 'color:var(--ut-body-text-color,#37424a);opacity:.75;margin:22px 2px 10px;}'
+      || '.hom-cat:first-child{margin-top:6px;}'
+      || '.hom-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(264px,1fr));gap:12px;}'
+      || '.hom-card{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:8px;'
+      || 'text-decoration:none;background:var(--ut-component-background-color,#fff);'
+      || 'border:1px solid var(--ut-component-border-color,rgba(0,0,0,.12));'
+      || 'box-shadow:0 1px 2px rgba(0,0,0,.05);'
+      || 'transition:box-shadow .15s ease,transform .15s ease,border-color .15s ease;}'
+      || '.hom-card:hover,.hom-card:focus{box-shadow:0 6px 18px rgba(0,0,0,.13);transform:translateY(-2px);'
+      || 'border-color:var(--ut-palette-primary,#0072b2);outline:none;}'
+      || '.hom-media{flex:0 0 auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;}'
+      || '.hom-media img{max-width:48px;max-height:48px;border-radius:8px;display:block;}'
+      || '.hom-body{display:flex;flex-direction:column;min-width:0;}'
+      || '.hom-title{font-weight:600;line-height:1.3;color:var(--ut-body-text-color,#37424a);'
+      || 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'
+      || '.hom-desc{font-size:12.5px;line-height:1.35;margin-top:2px;color:var(--ut-body-text-color,#37424a);'
+      || 'opacity:.65;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}'
+      || '.hom-empty{color:var(--ut-body-text-color,#37424a);opacity:.65;padding:8px 2px;}'
+      || '</style><div class="hom-wrap">');
+
+    for r in (
+      select tile_kind, ref_id, title, subtitle, url, new_tab,
+             category_label, category_seq, display_seq, icon_blob, icon_mime
+        from hom_tiles_v
+       order by category_seq, category_label, display_seq, lower(title)
+    ) loop
+      l_any := true;
+
+      -- new category heading + open a fresh grid
+      if r.category_label <> l_cat or l_cat = chr(0) then
+        if l_cat <> chr(0) then
+          app(l_html, '</div>');               -- close previous grid
+        end if;
+        app(l_html, '<h2 class="hom-cat">' || apex_escape.html(r.category_label) || '</h2>');
+        app(l_html, '<div class="hom-grid">');
+        l_cat := r.category_label;
+      end if;
+
+      -- the whole card is the link
+      app(l_html, '<a class="hom-card" href="' || apex_escape.html(r.url) || '"'
+                  || case when r.new_tab = 'Y' then ' target="_blank" rel="noopener"' end || '>');
+
+      app(l_html, '<span class="hom-media">');
+      if r.icon_blob is not null and dbms_lob.getlength(r.icon_blob) > 0 then
+        app(l_html, '<img alt="" loading="lazy" src="data:' || r.icon_mime || ';base64,');
+        dbms_lob.append(l_html, blob_to_b64(r.icon_blob));
+        app(l_html, '">');
+      end if;
+      app(l_html, '</span>');
+
+      app(l_html, '<span class="hom-body"><span class="hom-title">' || apex_escape.html(r.title) || '</span>');
+      if r.subtitle is not null then
+        app(l_html, '<span class="hom-desc">' || apex_escape.html(r.subtitle) || '</span>');
+      end if;
+      app(l_html, '</span></a>');
+    end loop;
+
+    if l_any then
+      app(l_html, '</div>');                    -- close last grid
+    else
+      app(l_html, '<p class="hom-empty">Es sind keine Anwendungen sichtbar.</p>');
+    end if;
+
+    app(l_html, '</div>');                       -- close .hom-wrap
+    return l_html;
+  end render_home;
 
 end pck_hom_api;
 /

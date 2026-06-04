@@ -17,6 +17,7 @@ as
     p_application_id in number,
     p_category_id    in number   default null,
     p_display_name   in varchar2 default null,
+    p_description    in varchar2 default null,
     p_icon_id        in number   default null,
     p_is_visible     in varchar2 default 'Y',
     p_display_seq    in number   default 10
@@ -35,6 +36,7 @@ as
     p_application_id in number,
     p_category_id    in number   default null,
     p_display_name   in varchar2 default null,
+    p_description    in varchar2 default null,
     p_icon_id        in number   default null,
     p_is_visible     in varchar2 default 'Y',
     p_display_seq    in number   default 10
@@ -46,16 +48,17 @@ as
     when matched then update set
         t.category_id  = p_category_id,
         t.display_name = p_display_name,
+        t.description  = p_description,
         t.icon_id      = p_icon_id,
         t.is_visible   = nvl(p_is_visible, 'Y'),
         t.display_seq  = nvl(p_display_seq, 10),
         t.updated_at   = systimestamp,
         t.updated_by   = user
     when not matched then insert
-        (application_id, category_id, display_name, icon_id, is_visible, display_seq,
+        (application_id, category_id, display_name, description, icon_id, is_visible, display_seq,
          created_at, created_by, updated_at, updated_by)
       values
-        (p_application_id, p_category_id, p_display_name, p_icon_id, nvl(p_is_visible, 'Y'), nvl(p_display_seq, 10),
+        (p_application_id, p_category_id, p_display_name, p_description, p_icon_id, nvl(p_is_visible, 'Y'), nvl(p_display_seq, 10),
          systimestamp, user, systimestamp, user);
 
     pck_hom_log.info(c_pkg, 'save', 'app ' || p_application_id || ' visible=' || nvl(p_is_visible, 'Y'));
