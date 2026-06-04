@@ -17,6 +17,11 @@ login.sql
 connect.local.sql
 tnsnames.local.ora
 
+# Local deploy / connection helpers (never committed)
+deploy.local.*
+*.local.ps1
+*.local.sql
+
 # Editors / IDEs
 .idea/
 .vscode/
